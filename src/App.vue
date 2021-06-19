@@ -1,7 +1,9 @@
 <template>
   <div id="app">
     <LayoutHeader></LayoutHeader>
-    <router-view></router-view>
+    <keep-alive include="home">
+      <router-view></router-view>
+    </keep-alive>
     <div class="bg">
       <img :src="wallpaper" alt="" ref="img">
     </div>

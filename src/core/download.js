@@ -1,36 +1,36 @@
 import UA from '../assets/data/ua'
 import FFmpeg from '../core/ffmpeg'
 import sleep from '../utlis/sleep'
-const stream = require('stream');
-const {promisify} = require('util');
-const fs = require('fs');
-const got = require('got');
-const pipeline = promisify(stream.pipeline);
+const stream = require('stream')
+const { promisify } = require('util')
+const fs = require('fs')
+const got = require('got')
+const pipeline = promisify(stream.pipeline)
 
 function delFile (setting, videoInfo, event, dir) {
   // 删除原视频
-  if (setting.isDelete) {
-    fs.rmdir(`${dir}${videoInfo.title}-video.m4s`, { recursive: true }, err => {
-      if (err) {
-        console.log(err)
-      } else {
-        console.log('video-删除成功')
-      }
-    })
-    fs.rmdir(`${dir}${videoInfo.title}-audio.m4s`, { recursive: true }, err => {
-      if (err) {
-        console.log(err)
-      } else {
-        console.log('audio-删除成功')
-      }
-    })
-  } else {
-    event.reply('reply-download-video', {
-      id: videoInfo.id,
-      status: 0,
-      progress: 100
-    })
-  }
+  // if (setting.isDelete) {
+  fs.rmdir(`${dir}${videoInfo.title}-video.m4s`, { recursive: true }, err => {
+    if (err) {
+      console.log(err)
+    } else {
+      console.log('video-删除成功')
+    }
+  })
+  fs.rmdir(`${dir}${videoInfo.title}-audio.m4s`, { recursive: true }, err => {
+    if (err) {
+      console.log(err)
+    } else {
+      console.log('audio-删除成功')
+    }
+  })
+  // } else {
+  //   event.reply('reply-download-video', {
+  //     id: videoInfo.id,
+  //     status: 0,
+  //     progress: 100
+  //   })
+  // }
 }
 
 export default async (videoInfo, event) => {
@@ -53,7 +53,7 @@ export default async (videoInfo, event) => {
       referer: videoInfo.url
     }
   }
-  const dir = `${setting.downloadPath}/${videoInfo.title}-${videoInfo.id}/`
+  const dir = `${setting.downloadPath}/${videoInfo.title}/`
   // 创建文件夹
   try {
     fs.mkdirSync(dir)
@@ -69,45 +69,47 @@ export default async (videoInfo, event) => {
     fs.createWriteStream(`${dir}${videoInfo.title}.png`)
   )
   // 下载视频
-  await pipeline(
-    got.stream(videoInfo.downloadPath.video, downloadConfig)
-      .on('downloadProgress', progress => {
-        let nowTime = +new Date()
-        clearTimeout(videoTimer)
-        if (!videoLastTime || nowTime - videoLastTime > 1000) {
-          console.log('--下载视频进度--')
-          event.reply('reply-download-video', {
-            id: videoInfo.id,
-            status: 1,
-            progress: parseInt(parseFloat(parseFloat(progress.percent).toFixed(2)) * 100)
-          })
-          videoLastTime = nowTime
-        } else {
-          videoTimer = setTimeout(() => {
+  if (setting.downloadVideo) {
+    await pipeline(
+      got.stream(videoInfo.downloadPath.video, downloadConfig)
+        .on('downloadProgress', progress => {
+          const nowTime = +new Date()
+          clearTimeout(videoTimer)
+          if (!videoLastTime || nowTime - videoLastTime > 1000) {
+            console.log('--下载视频进度--')
             event.reply('reply-download-video', {
               id: videoInfo.id,
-              status: 1,
+              status: 1, 
               progress: parseInt(parseFloat(parseFloat(progress.percent).toFixed(2)) * 100)
             })
-          }, 200)
-        }
-      })
-      .on('error', error => {
-        console.log(error)
-        event.reply('reply-download-video', {
-          id: videoInfo.id,
-          status: -1,
-          progress: 100
+            videoLastTime = nowTime
+          } else {
+            videoTimer = setTimeout(() => {
+              event.reply('reply-download-video', {
+                id: videoInfo.id,
+                status: 1,
+                progress: parseInt(parseFloat(parseFloat(progress.percent).toFixed(2)) * 100)
+              })
+            }, 200)
+          }
         })
-      }),
-    fs.createWriteStream(`${dir}${videoInfo.title}-video.m4s`)
-  )
-  await sleep(500)
+        .on('error', error => {
+          console.log(error)
+          event.reply('reply-download-video', {
+            id: videoInfo.id,
+            status: -1,
+            progress: 100
+          })
+        }),
+      fs.createWriteStream(`${dir}${videoInfo.title}-video.m4s`)
+    )
+    await sleep(500)
+  }
   // 下载音频
   await pipeline(
     got.stream(videoInfo.downloadPath.audio, downloadConfig)
       .on('downloadProgress', progress => {
-        let nowTime = +new Date()
+        const nowTime = +new Date()
         clearTimeout(audioTimer)
         if (!audioLastTime || nowTime - audioLastTime > 1000) {
           console.log('--下载音频进度--')
@@ -139,20 +141,50 @@ export default async (videoInfo, event) => {
   )
   await sleep(500)
   // 合成视频
-  if (setting.isMerge) {
-    const ffmpeg = new FFmpeg({
-      videoPath: `${dir}${videoInfo.title}-video.m4s`,
-      audioPath: `${dir}${videoInfo.title}-audio.m4s`,
-      mergePath: `${dir}${videoInfo.title}.mp4`
-    })
-    ffmpeg.startMerge(res => {
-      console.log('--合成视频--')
-      console.log(res)
+  // if (setting.isMerge) {
+  const ffmpeg = new FFmpeg({
+    videoPath: `${dir}${videoInfo.title}-video.m4s`,
+    audioPath: `${dir}${videoInfo.title}-audio.m4s`,
+    mergePath: `${dir}${videoInfo.title}.mp4`,
+    outAudioPath: `${dir}${videoInfo.title}.${videoInfo.audioType}`
+  })
+  if (setting.downloadAudio) {
+    await ffmpeg.transAudio((res) => {
+      console.log('--转换音频--' + res)
       if (res === 'start') {
         event.reply('reply-download-video', {
           id: videoInfo.id,
           status: 3,
           progress: 100
+        })
+      }
+      if (res === 'end') {
+        event.reply('reply-download-video', {
+          id: videoInfo.id,
+          status: 0,
+          progress: 100
+        })
+        if (!setting.downloadVideo) {
+          delFile(setting, videoInfo, event, dir)
+        }
+      }
+      if (res === 'error') {
+        event.reply('reply-download-video', {
+          id: videoInfo.id,
+          status: -1,
+          progress: 100
+        })
+      }
+    })
+  }
+  if (setting.downloadVideo) {
+    ffmpeg.startMerge((res, progress) => {
+      console.log('--合成视频--')
+      if (res === 'start') {
+        event.reply('reply-download-video', {
+          id: videoInfo.id,
+          status: 4,
+          progress: 0
         })
       }
       if (res === 'end') {
@@ -173,12 +205,13 @@ export default async (videoInfo, event) => {
         delFile(setting, videoInfo, event, dir)
       }
     })
-  } else {
-    event.reply('reply-download-video', {
-      id: videoInfo.id,
-      status: 0,
-      progress: 100
-    })
-    delFile(setting, videoInfo, event, dir)
   }
+  // } else {
+  //   event.reply('reply-download-video', {
+  //     id: videoInfo.id,
+  //     status: 0,
+  //     progress: 100
+  //   })
+  //   delFile(setting, videoInfo, event, dir)
+  // }
 }

@@ -11,22 +11,37 @@ export default [
     label: 'SESSDATA',
     placeholder: '请填写SESSDATA',
     type: 'input',
-    decorator: ['SESSDATA', { rules: [{ required: true, message: '请填写SESSDATA' }] }],
+    decorator: ['SESSDATA', { rules: [{ required: false, message: '请填写SESSDATA' }] }],
     tips: '设置SESSDATA教程：',
     full: true
   },
   {
-    label: '下载成功后是否进行转码合并',
+    label: '是否下载音频',
     type: 'switch',
-    decorator: ['isMerge', { rules: [{ required: false }], valuePropName: 'checked' }],
-    tips: '下载的源文件是音视频分离的m4s文件，故需要合并',
+    decorator: ['downloadAudio', { rules: [{ required: false }], valuePropName: 'checked' }],
+    tips: '',
     full: true
   },
   {
-    label: '下载成功后是否删除原视频',
+    label: '是否下载视频',
     type: 'switch',
-    decorator: ['isDelete', { rules: [{ required: false }], valuePropName: 'checked' }],
-    tips: '删除合并前的m4s文件',
+    decorator: ['downloadVideo', { rules: [{ required: false }], valuePropName: 'checked' }],
+    tips: '',
     full: true
   }
+  // ,
+  // {
+  //   label: '下载成功后是否进行转码合并',
+  //   type: 'switch',
+  //   decorator: ['isMerge', { rules: [{ required: false }], valuePropName: 'checked' }],
+  //   tips: '下载的源文件是音视频分离的m4s文件，故需要合并',
+  //   full: true
+  // },
+  // {
+  //   label: '下载成功后是否删除原视频',
+  //   type: 'switch',
+  //   decorator: ['isDelete', { rules: [{ required: false }], valuePropName: 'checked' }],
+  //   tips: '删除合并前的m4s文件',
+  //   full: true
+  // }
 ]

@@ -3,7 +3,7 @@
     <div class="back-icon">
       <a-icon type="rollback" class="icon" @click="goHome" />
     </div>
-    <a-empty v-if="!taskList || !taskList.length" image="https://wong-1251253615.cos.ap-shanghai.myqcloud.com/no-data.png">
+    <a-empty v-if="!taskList || !taskList.length" class="text-active">
       <span slot="description" class="text-active" style="font-weight: bold">暂无数据</span>
     </a-empty>
     <template v-else>
@@ -26,7 +26,7 @@
           <img :src="current.cover | formatCover" :alt="current.title">
         </div>
         <div class="pl16 mt8 text-active" @click="openExternal(current.url)">{{ current.title }}</div>
-        <div class="fr ac pl16 mt8">
+        <div class="fr ac pl16 mt8 warp">
           UP：<div v-for="(item, index) in current.up" :key="index" class="mr16">
             <a @click="openExternal(`https://space.bilibili.com/${item.mid}`)">{{ item.name }}</a>
           </div>
@@ -67,6 +67,7 @@ export default {
         1: 'active',
         2: 'active',
         3: 'active',
+        4: 'active',
         0: 'success',
         '-1': 'exception'
       }
@@ -76,7 +77,8 @@ export default {
       const mapData = {
         1: '视频下载中',
         2: '音频下载中',
-        3: '视频合成中',
+        3: '音频转换中',
+        4: '视频合成中',
         0: '已完成',
         '-1': '下载失败'
       }
@@ -102,9 +104,13 @@ export default {
       const setting = window.remote.getGlobal('store').get('setting')
       let dir = ''
       if (process.platform === 'win32') {
-        dir = `${setting.downloadPath}\\${videoInfo.title}-${videoInfo.id}`
+        dir = `${setting.downloadPath}\\${videoInfo.title}`
       } else {
-        dir = `${setting.downloadPath}/${videoInfo.title}-${videoInfo.id}`
+        dir = `${setting.downloadPath}/${videoInfo.title}`
+      }
+      if (!fs.existsSync(dir)) {
+        this.$message.error('文件夹已被删除')
+        return
       }
       window.remote.shell.showItemInFolder(dir)
     },
@@ -117,7 +123,7 @@ export default {
         onOk: () => {
           // 删除文件
           const setting = window.remote.getGlobal('store').get('setting')
-          fs.rmdir(`${setting.downloadPath}/${videoInfo.title}-${videoInfo.id}`, { recursive: true }, err => {
+          fs.rmdir(`${setting.downloadPath}/${videoInfo.title}`, { recursive: true }, err => {
             if (err) {
               console.log(err)
             } else {
@@ -139,7 +145,7 @@ export default {
     },
     getVideoSize (videoInfo) {
       const setting = window.remote.getGlobal('store').get('setting')
-      fs.stat(`${setting.downloadPath}/${videoInfo.title}-${videoInfo.id}/${videoInfo.title}.mp4`, (err, info) => {
+      fs.stat(`${setting.downloadPath}/${videoInfo.title}/${videoInfo.title}.mp4`, (err, info) => {
         if (err) {
           console.log(err)
         } else {

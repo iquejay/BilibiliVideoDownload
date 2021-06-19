@@ -18,10 +18,16 @@
           <div>up：<span v-for="(item, index) in videoInfo.up" :key="index" class="text-active mr8" @click="openExternal(`https://space.bilibili.com/${item.mid}`)">{{item.name}}</span></div>
         </div>
       </div>
-      <div class="mt16">
-        选择清晰度：
+      <div class="mt16" v-if="downloadVideo">
+        选择视频清晰度：
         <div class="mt8">
           <a-radio-group v-model="quality" :options="videoInfo.qualityOptions" />
+        </div>
+      </div>
+      <div class="mt16" v-if="downloadAudio">
+        选择音频格式：
+        <div class="mt8">
+          <a-radio-group v-model="audioType" :options="audioOptions" />
         </div>
       </div>
       <div v-if="videoInfo.page && videoInfo.page.length > 1" class="fr ac jsb mt16">
@@ -60,7 +66,11 @@ export default {
       selected: [],
       videoOptions: [],
       quality: null,
-      got: null
+      got: null,
+      audioOptions: [{ label: 'MP3', value: 'mp3' }, { label: 'WAV', value: 'wav' }, { label: 'M4A', value: 'm4a' }],
+      audioType: 'mp3',
+      downloadVideo: true,
+      downloadAudio: true
     }
   },
   components: {},
@@ -84,6 +94,11 @@ export default {
     show (info) {
       this.visible = true
       this.videoInfo = info
+      console.log(info)
+      this.quality = info.qualityOptions.filter(q => q.value <= 80)[0].value
+      const globalStore = window.remote.getGlobal('store')
+      this.downloadAudio = globalStore.get('setting.downloadAudio')
+      this.downloadVideo = globalStore.get('setting.downloadVideo')
     },
     async handleOk () {
       // 判断是否选择清晰度
@@ -91,12 +106,12 @@ export default {
         this.$message.info('请选择清晰度')
         return
       }
-      const SESSDATA = window.remote.getGlobal('store').get('setting.SESSDATA')
+      const SESSDATA = window.remote.getGlobal('store').get('setting.SESSDATA') || ''
       const bfeId = window.remote.getGlobal('store').get('setting.bfe_id') ? window.remote.getGlobal('store').get('setting.bfe_id') : ''
-      if (!SESSDATA) {
-        this.$message.error('请设置SESSDATA')
-        return
-      }
+      // if (!SESSDATA) {
+      //   this.$message.error('请设置SESSDATA')
+      //   return
+      // }
       const config = {
         headers: {
           'User-Agent': `${UA}`,
@@ -136,7 +151,8 @@ export default {
             downloadPath: {
               video: video.find(item => item.id === this.quality).baseUrl,
               audio: audio[0].baseUrl
-            }
+            },
+            audioType: this.audioType
           }
           console.log(videoInfo)
           // 保存数据
@@ -150,6 +166,7 @@ export default {
           }
         }
         this.confirmLoading = false
+        this.visible = false
         // 跳转到下载页面
         this.$router.push('/download')
       } else {
@@ -163,6 +180,11 @@ export default {
         )
         // 保存返回的cookies
         this.saveResponseCookies(responseCookies)
+        const videoUrl = video.find(item => item.id === this.quality)?.baseUrl
+        if (!videoUrl) {
+          this.$message.info('获取视频失败，可能需要大会员')
+          return
+        }
         const videoInfo = {
           id: `${new Date().getTime()}${randomNum(1000, 9999)}`,
           ...this.videoInfo,
@@ -172,18 +194,24 @@ export default {
           progress: 0,
           size: null,
           downloadPath: {
-            video: video.find(item => item.id === this.quality).baseUrl,
+            video: videoUrl,
             audio: audio[0].baseUrl
-          }
+          },
+          audioType: this.audioType
         }
         console.log(videoInfo)
         // 保存数据
         let taskList = window.remote.getGlobal('store').get('taskList') ? window.remote.getGlobal('store').get('taskList') : []
+        const taskIndex = taskList.findIndex(task => task.title === videoInfo.title)
+        if (taskIndex !== -1) {
+          taskList.splice(taskIndex, 1)
+        }
         taskList = taskList.concat(videoInfo)
         window.remote.getGlobal('store').set('taskList', taskList)
         this.confirmLoading = false
         // 调用下载
         window.ipcRenderer.send('download-video', videoInfo)
+        this.visible = false
         this.$router.push('/download')
       }
     },

@@ -2,7 +2,7 @@
 
 import { app, Menu, protocol, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
-import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer'
+// import installExtension, { VUEJS_DEVTOOLS } from 'electron-devtools-installer'
 import downloadTask from './core/download'
 const isDevelopment = process.env.NODE_ENV !== 'production'
 const got = require('got')
@@ -93,7 +93,9 @@ function initSetting () {
       SESSDATA: null,
       isMerge: true,
       isDelete: true,
-      bfe_id: null
+      bfe_id: null,
+      downloadVideo: true,
+      downloadAudio: true
     })
   }
 }
@@ -109,7 +111,6 @@ function creatImageServer () {
       res.send('hello world')
     }
   })
-  
   server.listen(8964, () => {
     console.log('图片服务启动：http://127.0.0.1:8964')
   })
@@ -134,14 +135,14 @@ app.on('activate', () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
-  if (isDevelopment && !process.env.IS_TEST) {
-    // Install Vue Devtools
-    try {
-      await installExtension(VUEJS_DEVTOOLS)
-    } catch (e) {
-      console.error('Vue Devtools failed to install:', e.toString())
-    }
-  }
+  // if (isDevelopment && !process.env.IS_TEST) {
+  //   // Install Vue Devtools
+  //   try {
+  //     await installExtension(VUEJS_DEVTOOLS)
+  //   } catch (e) {
+  //     console.error('Vue Devtools failed to install:', e.toString())
+  //   }
+  // }
   createWindow()
 
   // 初始化设置

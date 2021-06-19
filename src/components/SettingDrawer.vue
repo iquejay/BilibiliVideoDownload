@@ -14,7 +14,7 @@
         :class="`${item.full ? 'is-full' : ''}`">
         <span slot="label">
           {{ item.label }}
-          <a-tooltip>
+          <a-tooltip v-if="item.tips">
             <template slot="title">
               {{ item.tips }} <a v-if="item.label === 'SESSDATA'" @click="openExternal('https://blog.wangyu.link/2020/01/25/2020-01-25/')">查看</a>
             </template>
@@ -22,8 +22,8 @@
           </a-tooltip>
         </span>
         <div v-if="item.type === 'downloadPath'" id="customInput">
-          <a-input v-decorator="item.decorator" :placeholder="item.placeholder" class="custom-input" @click="openFolder">
-            <a-icon slot="suffix" type="folder" style="color: rgba(0,0,0,.45)" />
+          <a-input v-decorator="item.decorator" :placeholder="item.placeholder" class="custom-input">
+            <a-icon slot="suffix" @click="openFolder" type="folder" style="color: rgba(0,0,0,.45)" />
           </a-input>
         </div>
         <a-input v-if="item.type === 'input'" v-decorator="item.decorator" :placeholder="item.placeholder"></a-input>
@@ -119,11 +119,3 @@ export default {
   }
 }
 </script>
-
-<style scoped lang="less">
-.custom-input{
-  /deep/ .ant-input{
-    cursor: pointer;
-  }
-}
-</style>
