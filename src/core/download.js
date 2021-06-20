@@ -53,7 +53,7 @@ export default async (videoInfo, event) => {
       referer: videoInfo.url
     }
   }
-  const dir = `${setting.downloadPath}/${videoInfo.title}/`
+  const dir = `${setting.downloadPath}/${videoInfo.dirTitle}`
   // 创建文件夹
   try {
     fs.mkdirSync(dir)
@@ -75,12 +75,13 @@ export default async (videoInfo, event) => {
         .on('downloadProgress', progress => {
           const nowTime = +new Date()
           clearTimeout(videoTimer)
+          const progressPercent = parseInt(parseFloat(parseFloat(progress.percent).toFixed(2)) * 100)
           if (!videoLastTime || nowTime - videoLastTime > 1000) {
-            console.log('--下载视频进度--')
+            console.log(`--下载视频进度-- ${progressPercent}`)
             event.reply('reply-download-video', {
               id: videoInfo.id,
-              status: 1, 
-              progress: parseInt(parseFloat(parseFloat(progress.percent).toFixed(2)) * 100)
+              status: 1,
+              progress: progressPercent
             })
             videoLastTime = nowTime
           } else {
@@ -88,7 +89,7 @@ export default async (videoInfo, event) => {
               event.reply('reply-download-video', {
                 id: videoInfo.id,
                 status: 1,
-                progress: parseInt(parseFloat(parseFloat(progress.percent).toFixed(2)) * 100)
+                progress: progressPercent
               })
             }, 200)
           }
@@ -111,12 +112,13 @@ export default async (videoInfo, event) => {
       .on('downloadProgress', progress => {
         const nowTime = +new Date()
         clearTimeout(audioTimer)
+        const progressPercent = parseInt(parseFloat(parseFloat(progress.percent).toFixed(2)) * 100)
         if (!audioLastTime || nowTime - audioLastTime > 1000) {
-          console.log('--下载音频进度--')
+          console.log(`--下载音频进度-- ${progressPercent}%`)
           event.reply('reply-download-video', {
             id: videoInfo.id,
             status: 2,
-            progress: parseInt(parseFloat(parseFloat(progress.percent).toFixed(2)) * 100)
+            progress: progressPercent
           })
           audioLastTime = nowTime
         } else {
@@ -124,7 +126,7 @@ export default async (videoInfo, event) => {
             event.reply('reply-download-video', {
               id: videoInfo.id,
               status: 2,
-              progress: parseInt(parseFloat(parseFloat(progress.percent).toFixed(2)) * 100)
+              progress: progressPercent
             })
           }, 200)
         }

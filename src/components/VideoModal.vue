@@ -15,11 +15,16 @@
         </div>
         <div class="content fc jsa pl16">
           <div class="text-active ellipsis-2" @click="openExternal(videoInfo.url)">{{ videoInfo.title }}</div>
-          <div>up：<span v-for="(item, index) in videoInfo.up" :key="index" class="text-active mr8" @click="openExternal(`https://space.bilibili.com/${item.mid}`)">{{item.name}}</span></div>
+          <div v-if="videoInfo.up && videoInfo.up[0] && videoInfo.up[0].name">up：<span v-for="(item, index) in videoInfo.up" :key="index" class="text-active mr8" @click="openExternal(`https://space.bilibili.com/${item.mid}`)">{{item.name}}</span></div>
         </div>
       </div>
       <div class="mt16" v-if="downloadVideo">
-        选择视频清晰度：
+        选择视频清晰度：<a-tooltip>
+            <template slot="title">
+              1080P+及4k需要大会员，如您是大会员，设置SESSDATA即可下载 <a @click="openExternal('https://blog.wangyu.link/2020/01/25/2020-01-25/')">获取SESSDATA教程</a>
+            </template>
+            <a-icon type="info-circle" style="font-size: 12px;display: inline-block;margin-left: 4px;" />
+          </a-tooltip>
         <div class="mt8">
           <a-radio-group v-model="quality" :options="videoInfo.qualityOptions" />
         </div>
@@ -118,13 +123,13 @@ export default {
           cookie: `SESSDATA=${SESSDATA};bfe_id=${bfeId}`
         }
       }
-      this.confirmLoading = true
       // 判断是否多p视频
       if (this.videoInfo.page.length > 1) {
         if (!this.selected.length) {
           this.$message.info('请选择分P')
           return
         }
+        this.confirmLoading = true
         for (let index = 0; index < this.selected.length; index++) {
           const currentPage = this.selected[index]
           // 请求选中清晰度视频下载地址
@@ -141,7 +146,8 @@ export default {
           const videoInfo = {
             id: `${new Date().getTime()}${randomNum(1000, 9999)}`,
             ...this.videoInfo,
-            title: `[P${currentPage}]${filterTitle(this.videoInfo.page.find(item => item.page === currentPage).title)}}`,
+            title: `[P${currentPage}]${filterTitle(this.videoInfo.page.find(item => item.page === currentPage).title)}`,
+            dirTitle: filterTitle(this.videoInfo.title),
             quality: this.quality,
             duration: formatSeconed(this.videoInfo.page.find(item => item.page === currentPage).duration),
             status: 1,
@@ -170,6 +176,7 @@ export default {
         // 跳转到下载页面
         this.$router.push('/download')
       } else {
+        this.confirmLoading = true
         // 请求选中清晰度视频下载地址
         const { body: { data: { dash: { video, audio } } }, headers: { 'set-cookie': responseCookies } } = await this.got(
           `https://api.bilibili.com/x/player/playurl?cid=${this.videoInfo.cid}&bvid=${this.videoInfo.bvid}&qn=${this.quality}&type=&otype=json&fourk=1&fnver=0&fnval=80&session=68191c1dc3c75042c6f35fba895d65b0`,
@@ -183,12 +190,14 @@ export default {
         const videoUrl = video.find(item => item.id === this.quality)?.baseUrl
         if (!videoUrl) {
           this.$message.info('获取视频失败，可能需要大会员')
+          this.confirmLoading = false
           return
         }
         const videoInfo = {
           id: `${new Date().getTime()}${randomNum(1000, 9999)}`,
           ...this.videoInfo,
           title: filterTitle(this.videoInfo.title),
+          dirTitle: filterTitle(this.videoInfo.title),
           quality: this.quality,
           status: 1,
           progress: 0,

@@ -9,11 +9,10 @@
 </template>
 
 <script>
-const info = require('../../package.json')
 export default {
   data () {
     return {
-      projectName: info.name
+      projectName: '哔哩哔哩下载器'
     }
   },
   components: {},

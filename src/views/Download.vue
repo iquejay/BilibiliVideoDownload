@@ -8,25 +8,49 @@
     </a-empty>
     <template v-else>
       <div class="left">
-        <div v-for="(item, index) in taskList" :key="index" :class="['fr', 'download-item', selected === index ? 'active' : '']" @click="switchItem(index)">
-          <div class="img fr ac">
-            <img :src="item.cover | formatCover" :alt="item.title">
-          </div>
-          <div class="content fc jsb">
-            <div class="ellipsis-1">{{ item.title }}</div>
-            <div>状态：<span class="text-active">{{ item.status | formatProgress }}</span></div>
-            <div>
-              <a-progress :percent="item.progress" :status="item.status | formatStatus" strokeColor="#fb7299"></a-progress>
-            </div>
+        <div class="fr jsb aic" style="height: 30px;border-bottom: 1px solid #eeeeee;">
+          <span style="color: #999">共 {{taskList.length}} 个</span>
+          <span @click="clearTaskList" style="color: #333;margin-right: 10px; cursor: pointer;">清空全部&nbsp;<a-icon type="delete"></a-icon></span>
+        </div>
+        <div class="task-content">
+          <div v-for="(item, index) in taskList" :key="index">
+            <a-dropdown :trigger="['contextmenu']">
+              <div @dblclick="onDoubleClick(item)" :class="['fr', 'download-item', selected === index ? 'active' : '']" @click="switchItem(index)">
+              <div class="img fr ac">
+                <img :src="item.cover | formatCover" :alt="item.title">
+              </div>
+              <div class="content fc jsb">
+                <div class="ellipsis-1">{{ item.title }}</div>
+                <div>状态：<span class="text-active">{{ item.status | formatProgress }}</span></div>
+                <div>
+                  <a-progress :percent="item.progress" :status="item.status | formatStatus" strokeColor="#fb7299"></a-progress>
+                </div>
+              </div>
+              </div>
+              <a-menu slot="overlay" @click="onOperationClick(item, $event)">
+                <a-menu-item key="play">
+                  播放
+                </a-menu-item>
+                <a-menu-item key="open">
+                  打开文件夹
+                </a-menu-item>
+                <a-menu-item key="remove">
+                  从列表中移除
+                </a-menu-item>
+                <a-menu-item key="delete">
+                  移除并删除本地
+                </a-menu-item>
+              </a-menu>
+            </a-dropdown>
           </div>
         </div>
       </div>
-      <div class="right">
+      <div class="right" style="padding-top: 29px">
         <div class="image">
           <img :src="current.cover | formatCover" :alt="current.title">
         </div>
         <div class="pl16 mt8 text-active" @click="openExternal(current.url)">{{ current.title }}</div>
-        <div class="fr ac pl16 mt8 warp">
+        <div v-if="current.up && current.up[0] && current.up[0].name" class="fr ac pl16 mt8 warp">
           UP：<div v-for="(item, index) in current.up" :key="index" class="mr16">
             <a @click="openExternal(`https://space.bilibili.com/${item.mid}`)">{{ item.name }}</a>
           </div>
@@ -38,10 +62,10 @@
         <div class="mt8 pl16">播放：<span class="text-active">{{ current.watch }}</span></div>
         <div class="mt8 pl16">弹幕：<span class="text-active">{{ current.danmu }}</span></div>
         <div class="mt8 pl16">评论：<span class="text-active">{{ current.comment }}</span></div>
-        <div class="operate fr ac jc">
+        <!-- <div class="operate fr ac jc">
           <a-button icon="delete" type="primary" @click="delDir(current)">删除</a-button>
           <a-button class="ml16" icon="folder" type="primary" @click="openFolder(current)">打开</a-button>
-        </div>
+        </div> -->
       </div>
     </template>
   </div>
@@ -77,7 +101,7 @@ export default {
       const mapData = {
         1: '视频下载中',
         2: '音频下载中',
-        3: '音频转换中',
+        3: '音频转换中(可能会略久一些...)',
         4: '视频合成中',
         0: '已完成',
         '-1': '下载失败'
@@ -104,9 +128,9 @@ export default {
       const setting = window.remote.getGlobal('store').get('setting')
       let dir = ''
       if (process.platform === 'win32') {
-        dir = `${setting.downloadPath}\\${videoInfo.title}`
+        dir = `${setting.downloadPath}\\${videoInfo.dirTitle}`
       } else {
-        dir = `${setting.downloadPath}/${videoInfo.title}`
+        dir = `${setting.downloadPath}/${videoInfo.dirTitle}/`
       }
       if (!fs.existsSync(dir)) {
         this.$message.error('文件夹已被删除')
@@ -114,38 +138,29 @@ export default {
       }
       window.remote.shell.showItemInFolder(dir)
     },
-    delDir (videoInfo) {
-      this.$confirm({
-        title: '你确定要删除当前任务吗？',
-        content: '视频文件也会被删除',
-        cancelText: '取消',
-        okText: '删除',
-        onOk: () => {
-          // 删除文件
-          const setting = window.remote.getGlobal('store').get('setting')
-          fs.rmdir(`${setting.downloadPath}/${videoInfo.title}`, { recursive: true }, err => {
-            if (err) {
-              console.log(err)
-            } else {
-              console.log('video-删除成功')
-            }
-          })
-          // 删除记录
-          const taskList = window.remote.getGlobal('store').get('taskList')
-          const index = taskList.findIndex(item => item.id === videoInfo.id)
-          taskList.splice(index, 1)
-          window.remote.getGlobal('store').set('taskList', taskList)
-          this.$message.success('删除成功')
-          this.getTaskList()
-        },
-        onCancel () {
-          console.log('取消')
-        }
-      })
+    delDir (videoInfo, deleteType) {
+      // 删除文件
+      if (deleteType === 'delete') {
+        const setting = window.remote.getGlobal('store').get('setting')
+        fs.rmdir(`${setting.downloadPath}/${videoInfo.dirTitle}`, { recursive: true }, err => {
+          if (err) {
+            console.log(err)
+          } else {
+            console.log('video-删除成功')
+          }
+        })
+      }
+      // 删除记录
+      const taskList = window.remote.getGlobal('store').get('taskList')
+      const index = taskList.findIndex(item => item.id === videoInfo.id)
+      taskList.splice(index, 1)
+      window.remote.getGlobal('store').set('taskList', taskList)
+      this.$message.success(`${deleteType === 'delete' ? '删除' : '从列表移除'}成功`)
+      this.getTaskList()
     },
     getVideoSize (videoInfo) {
       const setting = window.remote.getGlobal('store').get('setting')
-      fs.stat(`${setting.downloadPath}/${videoInfo.title}/${videoInfo.title}.mp4`, (err, info) => {
+      fs.stat(`${setting.downloadPath}/${videoInfo.dirTitle}/${videoInfo.title}.mp4`, (err, info) => {
         if (err) {
           console.log(err)
         } else {
@@ -194,12 +209,55 @@ export default {
         this.switchItem(0)
       }
     },
+    clearTaskList () {
+      this.$confirm({
+        title: '确定要清空全部记录吗？',
+        content: '视频文件不会被删除',
+        cancelText: '取消',
+        okText: '清空',
+        onOk: () => {
+          this.taskList = []
+          window.remote.getGlobal('store').set('taskList', [])
+        }
+      })
+    },
     goHome () {
       this.$router.push('/')
     },
     switchItem (index) {
       this.selected = index
       this.current = this.taskList[index]
+    },
+    onDoubleClick (videoInfo) {
+      this.playFile(videoInfo)
+    },
+    playFile (videoInfo) {
+      const setting = window.remote.getGlobal('store').get('setting')
+      const playIfExist = (extension) => {
+        const filePath = `${setting.downloadPath}/${videoInfo.dirTitle}/${videoInfo.title}${extension}`
+        const fileEs = fs.existsSync(filePath)
+        if (fileEs) {
+          // 打开
+          window.remote.shell.openPath(filePath)
+          return true
+        }
+        return false
+      }
+      return playIfExist('.mp4') || playIfExist('.mp3') || playIfExist('.wav') || playIfExist('.m4a')
+    },
+    onOperationClick (item, { key }) {
+      switch (key) {
+        case 'open':
+          this.openFolder(item)
+          break
+        case 'remove':
+        case 'delete':
+          this.delDir(item, key)
+          break
+        case 'play':
+          this.playFile(item)
+          break
+      }
     }
   }
 }
@@ -208,7 +266,7 @@ export default {
 <style scoped lang="less">
 .container{
   box-sizing: border-box;
-  padding: 16px;
+  padding: 15px 16px 16px;
   position: relative;
   height: calc(100vh - 28px);
   &.bg-fff{
@@ -216,7 +274,7 @@ export default {
   }
   .back-icon{
     position: absolute;
-    top: 16px;
+    top: 10px;
     right: 16px;
     z-index: 99;
     cursor: pointer;
@@ -227,11 +285,12 @@ export default {
   }
   .left{
     flex: 5;
-    border-top: 1px solid #eeeeee;
-    border-right: 1px solid #eeeeee;
-    overflow-y: scroll;
-    &::-webkit-scrollbar{
-      display: none;
+    .task-content {
+      border-right: 1px solid #eeeeee;
+      overflow-y: scroll;
+      &::-webkit-scrollbar{
+        display: none;
+      }
     }
     .download-item{
       border-bottom: 1px solid #eeeeee;
@@ -259,6 +318,7 @@ export default {
         flex: none;
         width: 364px;
         padding: 8px;
+        position: relative;
       }
     }
   }

@@ -170,23 +170,23 @@ app.on('ready', async () => {
 
   // 关闭软件
   ipcMain.on('open-close-dialog', (event, arg) => {
-    dialog.showMessageBox(win, {
-      type: 'info',
-      title: '提示',
-      message: '是否关闭应用程序？',
-      buttons: ['取消', '关闭']
-    })
-      .then(res => {
-        console.log(res)
-        if (res.response === 1) {
-          app.exit()
-        } else {
-          console.log('点击取消')
-        }
-      })
-      .catch(error => {
-        console.log(error)
-      })
+    // dialog.showMessageBox(win, {
+    //   type: 'info',
+    //   title: '提示',
+    //   message: '是否关闭应用程序？',
+    //   buttons: ['取消', '关闭']
+    // })
+    //   .then(res => {
+    //     console.log(res)
+    // if (res.response === 1) {
+    app.exit()
+    // } else {
+    //   console.log('点击取消')
+    // }
+    // })
+    // .catch(error => {
+    //   console.log(error)
+    // })
   })
 
   // 打开浏览器

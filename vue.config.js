@@ -5,7 +5,7 @@ module.exports = {
       nodeModulesPath: ['../../node_modules', './node_modules'],
       nodeIntegration: true,
       builderOptions: {
-        productName: 'BilibiliVideoDownload',
+        productName: '哔哩哔哩下载器',
         appId: 'com.blogwy.bilibilivideodownload',
         dmg: {
           contents: [

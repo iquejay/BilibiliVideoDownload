@@ -9,14 +9,14 @@
       <img src="../assets/images/logo.png" alt="">
     </div>
     <div class="download-box">
-      <a-input v-model="url" @keyup.enter="download" allow-clear size="large" placeholder="请输入视频地址">
+      <a-input v-model="url" @keyup.enter="download" allow-clear size="large" placeholder="请输入视频地址或BV号">
         <a-tooltip slot="addonBefore" placement="bottom">
           <a-dropdown :trigger="['click']">
             <a-icon type="history" class="icon">
             </a-icon>
             <a-menu style="max-height: 250px;overflow: auto" v-if="searchHistoryList.length > 0" slot="overlay">
               <a-menu-item @click="onClickSearchItem(item)" :key="item" v-for="item in searchHistoryList">
-                <div class="fr jsb">
+                <div class="fr jsb aic">
                   <span class="ellipsis-1 flex: 1">{{item}}</span>
                   <a-icon type="close" style="margin: 0 5px 0 20px;color:#ff0000" @click="saveSearchHistory(item, true, $event)"/>
                 </div>
@@ -76,8 +76,13 @@ export default {
         this.$message.error('请输入视频地址')
         return
       }
+      // BV/AV号支持
+      let targetUrl = this.url
+      if (this.url.match(/(^av[0-9]+)|^bv1\w+/ig)) {
+        targetUrl = 'https://www.bilibili.com/video/' + this.url
+      }
       const params = {
-        url: this.url,
+        url: targetUrl,
         config: {
           headers: {
             'User-Agent': `${UA}`,
@@ -88,13 +93,13 @@ export default {
       try {
         const res = await this.got(params.url, params.config)
         // 检测是否有重定向
-        const url = res.redirectUrls[0] ? res.redirectUrls[0] : this.url
+        const url = res.redirectUrls[0] ? res.redirectUrls[0] : targetUrl
         const type = checkUrl(url)
         if (type === -1) {
           this.$message.error('请输入正确的视频地址')
           return
         }
-        this.saveSearchHistory(url)
+        this.saveSearchHistory(this.url)
         const videoInfo = await parseHtml(res.body, type, url)
         this.$refs.videoModal.show(videoInfo)
       } catch (error) {
@@ -138,7 +143,7 @@ export default {
   position: relative;
   .download-icon{
     position: absolute;
-    top: 16px;
+    top: 10px;
     right: 16px;
     z-index: 99;
     cursor: pointer;

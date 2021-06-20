@@ -12,7 +12,7 @@ export default [
     placeholder: '请填写SESSDATA',
     type: 'input',
     decorator: ['SESSDATA', { rules: [{ required: false, message: '请填写SESSDATA' }] }],
-    tips: '设置SESSDATA教程：',
+    tips: '若您是B站大会员，设置SESSDATA，可以下载更高清的视频。获取SESSDATA教程：',
     full: true
   },
   {
